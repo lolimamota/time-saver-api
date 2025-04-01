@@ -68,6 +68,22 @@ def agendamentos_realizados():
     ]
     return jsonify(dado_agenda)
 
+@app.route('/update/<int:id>' , methods =['PUT'])
+def modificar_agenda(id):
+    
+    dados = request.get_json()
+
+    if not {"data", "horario", "paciente", "especialidade", "convenio"}.issubset(dados):
+        return jsonify({'erro': "Faltam informações, agendamento não foi atualizado!"}), 400
+    
+    with sqlite3.connect('agenda.db') as conn:
+        conn.execute("""
+                UPDATE agendamento
+                SET dia = ?, horario = ?, nome = ?, especialidade_exame = ?, convenio = ?
+                WHERE id = ?
+""",  (dados["dia"], dados["horario"], dados["nome"], dados["especialidade_exame"], dados["convenio"])
+)
+    return jsonify({'mensagem': "Alteração concluída, agendamento atualizado!"})
 
 
 
