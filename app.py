@@ -4,6 +4,8 @@ import sqlite3;
 
 from flask_cors import CORS
 
+#--------------------------CRIAÇÃO DA TABELA DE AGENDAMENTO----------------------------------------
+
 app = Flask(__name__)
 
 CORS(app)
@@ -24,11 +26,16 @@ def nova_agenda():
 
 nova_agenda()
 
+#-------------------------------MOSTRA AS INFORMAÇÕES E CONSUMO DA API-----------------------------------
+
 @app.route("/")
 def home_page():
         return render_template("index.html")
 
-@app.route("/novo_agendamento" , methods =['POST'])
+#----------------------------------METODOS DE CONSUMO DA API----------------------------------------
+#POST: Insere os dados na tabela criada
+
+@app.route("/agendamento" , methods =['POST'])
 def novo_agendamento():
     dados = request.get_json()
 
@@ -43,14 +50,15 @@ def novo_agendamento():
 
 
     with sqlite3.connect('agenda.db') as conn:
-        conn.execute("""INSERT INTO agendamento(nome, dia, horario, especialidade_exame, convenio) 
-                  VALUES (? , ? , ? , ? , ?)""" , 
-                  (nome, dia, horario, especialidade_exame, convenio))
+        conn.execute("""INSERT INTO agendamento(nome, dia, horario, especialidade_exame, convenio) VALUES (? , ? , ? , ? , ?)""" , (nome, dia, horario, especialidade_exame, convenio))
         conn.commit()
 
         return jsonify({'mensagem': "Agendamento concluído com sucesso!"}), 201
+    
+#----------------------------------METODOS DE CONSUMO DA API----------------------------------------
+#GET: mostra os dados inseridos
 
-@app.route("/agendamento_confirmado" , methods =['GET'])
+@app.route("/visualizar" , methods =['GET'])
 def agendamentos_realizados():
     with sqlite3.connect('agenda.db') as conn:
         agendado = conn.execute("SELECT * FROM agendamento").fetchall()
@@ -68,6 +76,9 @@ def agendamentos_realizados():
     ]
     return jsonify(dado_agenda)
 
+#----------------------------------METODOS DE CONSUMO DA API----------------------------------------
+#PUT: atualiza os dados existentes
+
 @app.route('/update/<int:id>' , methods =['PUT'])
 def modificar_agenda(id):
     
@@ -84,6 +95,19 @@ def modificar_agenda(id):
 """,  (dados["dia"], dados["horario"], dados["nome"], dados["especialidade_exame"], dados["convenio"])
 )
     return jsonify({'mensagem': "Alteração concluída, agendamento atualizado!"})
+
+#----------------------------------METODOS DE CONSUMO DA API----------------------------------------
+#DELETE: exclui os dados existentes
+
+@app.route('/delete/<int:id>' , methods =['DELETE'])
+def excluir(id):
+    with sqlite3.connect('agenda.db') as conn:
+        result = conn.execute('DELETE FROM agendamento WHERE id = ?', (id))
+
+        if result.rowcount == 0:
+            return jsonify({'erro': "Não constam estas informações na base!"}), 404
+        
+        return jsonify({'mensgaem': "Este agendamento foi excluido da base!"}), 200
 
 
 
