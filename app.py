@@ -79,35 +79,50 @@ def agendamentos_realizados():
 #----------------------------------METODOS DE CONSUMO DA API----------------------------------------
 #PUT: atualiza os dados existentes
 
-@app.route('/update/<int:id>' , methods =['PUT'])
+@app.route('/update/<int:id>', methods=['PUT'])
 def modificar_agenda(id):
-    
     dados = request.get_json()
 
-    if not {"data", "horario", "paciente", "especialidade", "convenio"}.issubset(dados):
+    # Validação consistente das chaves
+    chaves_necessarias = {"dia", "horario", "nome", "especialidade_exame", "convenio"}
+    if not chaves_necessarias.issubset(dados):
         return jsonify({'erro': "Faltam informações, agendamento não foi atualizado!"}), 400
-    
-    with sqlite3.connect('agenda.db') as conn:
-        conn.execute("""
+
+    try:
+        with sqlite3.connect('agenda.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
                 UPDATE agendamento
                 SET dia = ?, horario = ?, nome = ?, especialidade_exame = ?, convenio = ?
                 WHERE id = ?
-""",  (dados["dia"], dados["horario"], dados["nome"], dados["especialidade_exame"], dados["convenio"])
-)
-    return jsonify({'mensagem': "Alteração concluída, agendamento atualizado!"})
+            """, (dados["dia"], dados["horario"], dados["nome"], dados["especialidade_exame"], dados["convenio"], id))
+            
+            if cursor.rowcount == 0:  # Verifica se alguma linha foi alterada
+                return jsonify({'erro': "Não houve alteração nos agendamentos!"}), 404
+
+        return jsonify({'mensagem': "Alteração concluída, agendamento atualizado!"})
+
+    except sqlite3.Error as e:
+        return jsonify({'erro': f"Ocorreu um erro ao atualizar: {str(e)}"}), 500
 
 #----------------------------------METODOS DE CONSUMO DA API----------------------------------------
 #DELETE: exclui os dados existentes
 
-@app.route('/delete/<int:id>' , methods =['DELETE'])
+@app.route('/delete/<int:id>', methods=['DELETE'])
 def excluir(id):
-    with sqlite3.connect('agenda.db') as conn:
-        result = conn.execute('DELETE FROM agendamento WHERE id = ?', (id))
+    try:
+        with sqlite3.connect('agenda.db') as conn:
+            cursor = conn.cursor()  # Captura o cursor para realizar operações
+            cursor.execute('DELETE FROM agendamento WHERE id = ?', (id,))
+            
+            # Verifica se alguma linha foi afetada
+            if cursor.rowcount == 0:
+                return jsonify({'erro': "Não constam estas informações na base!"}), 404
 
-        if result.rowcount == 0:
-            return jsonify({'erro': "Não constam estas informações na base!"}), 404
-        
-        return jsonify({'mensgaem': "Este agendamento foi excluido da base!"}), 200
+        return jsonify({'mensagem': "Este agendamento foi excluído da base!"}), 200
+
+    except sqlite3.Error as e:
+        return jsonify({'erro': f"Ocorreu um erro no banco de dados: {str(e)}"}), 500
 
 
 #verifica se este é o script principal e inicia o depurador para detalhes de erros
