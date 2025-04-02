@@ -110,6 +110,6 @@ def excluir(id):
         return jsonify({'mensgaem': "Este agendamento foi excluido da base!"}), 200
 
 
-
+#verifica se este é o script principal e inicia o depurador para detalhes de erros
 if __name__ == '__main__':
-     app.run(debug=True)
+    app.run(debug=True)
